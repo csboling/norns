@@ -38,14 +38,15 @@ void watch_deinit() {
 
 void *watch_time(void *x) {
   (void)x;
-
+  int res= 0;
   while(1) {
     if(stage==3) count++;
     if(count==10) {
       fprintf(stderr, "RESTARTING...\n");
-      system("nohup systemctl restart norns-sclang > /dev/null");
-      system("nohup systemctl restart norns-crone > /dev/null");
-      system("nohup systemctl restart norns-matron > /dev/null");
+      res |= system("nohup systemctl restart norns-sclang > /dev/null");
+      res |= system("nohup systemctl restart norns-crone > /dev/null");
+      res |= system("nohup systemctl restart norns-matron > /dev/null");
+      fprintf(stderr, "restart result: %d", res);
     }
     sleep(WATCH_TIME);
   }
