@@ -125,20 +125,8 @@ static int luma_8bit(uint16_t pixel_565) {
     r = (float)(pixel_565 & 0x1F) / 31.0;
 
     y = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-    /* printf("red %f, green %f, blue %f -> luma %f (%d)\n", r, g, b, y, (int)(y * 15)); */
     return (int)(y * 255);
 }
-
-/* static void rgb565_to_rgb888(uint16_t rgb565, uint8_t *rgb888) { */
-/*     rgb888[0] = (rgb565 >> 8) & 0xF8; */
-/*     rgb888[1] = (rgb565 >> 3) & 0xFC; */
-/*     rgb888[2] = (rgb565 << 3) & 0xF8; */
-/*     /\* rgb888[2] = (rgb565 & 0x1F) << 3; *\/ */
-/*     /\* rgb565 >>= 5; *\/ */
-/*     /\* rgb888[1] = (rgb565 & 0x3F) << 2; *\/ */
-/*     /\* rgb565 >>= 6; *\/ */
-/*     /\* rgb888[0] = (rgb565 & 0x1F) << 3; *\/ */
-/* } */
 
 static void write_png_to_buf(struct screen_emu* screen) {
     screen->png_write = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
@@ -211,9 +199,9 @@ static void* screen_poll_loop(void* data) {
             for (int x = 0; x < 128; x++) {
                 luma = luma_8bit(*p++);
                 screen->row_pointers[y][x] = luma;
-                /* printf("%c", luma > 9 ? (luma - 10) + 'a' : luma + '0'); */
+                /* fprintf(stderr, "%c", luma > 9 ? (luma - 10) + 'a' : luma + '0'); */
             }
-            /* printf("\n"); */
+            /* fprintf(stderr, "\n"); */
         }
 
         screen->outbuf.buf = NULL;
@@ -230,7 +218,9 @@ static void* screen_poll_loop(void* data) {
             p += sizeof(json_hdr) - 1;
             p += b64_encode((unsigned char*)screen->outbuf.buf, screen->outbuf.len, (unsigned char*)p);
             strcpy(p, json_ftr);
+
             printf("%s\n", output);
+            fflush(stdout);
         }
         usleep(1000 * 1000);
     }
