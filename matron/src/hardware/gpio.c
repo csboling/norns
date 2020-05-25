@@ -15,6 +15,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "args.h"
 #include "events.h"
 #include "watch.h"
 
@@ -27,14 +28,30 @@ pthread_t enc_p[3];
 void *key_check(void *);
 void *enc_check(void *);
 
+#define IO_FILENAME_SIZE 64
+
+char io_filename[IO_FILENAME_SIZE];
+
 // extern def
 
 static int open_and_grab(const char *pathname, int flags) {
     int fd;
     int open_attempts = 0, ioctl_attempts = 0;
+
+    if (args_skip_ioctls()) {
+        fd = open(pathname, flags);
+        if (fd <= 0) {
+            fprintf(stderr, "could not open gpio %s with flags %d: %s\n", pathname, flags, strerror(errno));
+        }
+        return fd;
+    }
+
+    fprintf(stderr, "grabbing %s\n", pathname);
     while (open_attempts < 200) {
         fd = open(pathname, flags);
         if (fd > 0) {
+            if (args_skip_ioctls()) return fd;
+
             if (ioctl(fd, EVIOCGRAB, 1) == 0) {
                 ioctl(fd, EVIOCGRAB, (void *)0);
                 goto done;
@@ -54,18 +71,28 @@ done:
 }
 
 void gpio_init() {
-    key_fd = open_and_grab("/dev/input/by-path/platform-keys-event", O_RDONLY); // Keys
+    int status;
+    const char* gpio_path = args_gpio();
+
+    status = snprintf(io_filename, IO_FILENAME_SIZE - 1, "%s/platform-keys-event", gpio_path);
+    if (status >= IO_FILENAME_SIZE) {
+        fprintf(stderr, "ERROR (gpio) filename too long: %s\n", io_filename);
+        return;
+    }
+    key_fd = open_and_grab(io_filename, O_RDONLY); // Keys
     if (key_fd > 0) {
         if (pthread_create(&key_p, NULL, key_check, 0)) {
             fprintf(stderr, "ERROR (keys) pthread error\n");
         }
     }
 
-    char *enc_filenames[3] = {"/dev/input/by-path/platform-soc:knob1-event",
-                              "/dev/input/by-path/platform-soc:knob2-event",
-                              "/dev/input/by-path/platform-soc:knob3-event"};
     for (int i = 0; i < 3; i++) {
-        enc_fd[i] = open_and_grab(enc_filenames[i], O_RDONLY);
+        status = snprintf(io_filename, IO_FILENAME_SIZE - 1, "%s/platform-soc:knob%d-event", gpio_path, i + 1);
+        if (status >= IO_FILENAME_SIZE) {
+            fprintf(stderr, "ERROR (enc%d) filename too long: %s\n", i, io_filename);
+            return;
+        }
+        enc_fd[i] = open_and_grab(io_filename, O_RDONLY);
         if (enc_fd[i] > 0) {
             int *arg = malloc(sizeof(int));
             *arg = i;

@@ -39,7 +39,7 @@ def configure(conf):
     conf.check_cfg(package='nanomsg', args=['--cflags', '--libs'])
     conf.check_cfg(package='avahi-compat-libdns_sd', args=['--cflags', '--libs'])
     conf.check_cfg(package='sndfile', args=['--cflags', '--libs'])
-    conf.check_cfg(package='fuse3', args=['--cflags', '--libs'])
+    conf.check_cfg(package='json-c', args=['--cflags', '--libs'])
 
     conf.check_cc(msg='Checking for libmonome',
         define_name='HAVE_LIBMONOME',
