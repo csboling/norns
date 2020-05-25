@@ -4,6 +4,7 @@ def build(bld):
     hwemu_sources = [
         '../matron/src/args.c',
         'src/main.c',
+        'src/screenemu.c',
         'src/base64/base64.c',
     ]
 
