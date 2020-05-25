@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,6 +11,7 @@ struct args {
     char ext_port[ARG_BUF_SIZE];
     char crone_port[ARG_BUF_SIZE];
     char framebuffer[ARG_BUF_SIZE];
+    bool skip_ioctls;
 };
 
 static struct args a = {
@@ -17,11 +19,12 @@ static struct args a = {
     .ext_port = "57120",
     .crone_port = "9999",
     .framebuffer = "/dev/fb0",
+    .skip_ioctls = false,
 };
 
 int args_parse(int argc, char **argv) {
     int opt;
-    while ((opt = getopt(argc, argv, "e:l:c:f:")) != -1) {
+    while ((opt = getopt(argc, argv, "e:l:c:f:i:")) != -1) {
         switch (opt) {
         case 'l':
             strncpy(a.loc_port, optarg, ARG_BUF_SIZE - 1);
@@ -34,6 +37,9 @@ int args_parse(int argc, char **argv) {
             break;
         case 'f':
             strncpy(a.framebuffer, optarg, ARG_BUF_SIZE - 1);
+            break;
+        case 'i':
+            a.skip_ioctls = true;
             break;
         default:;
             ;
@@ -56,4 +62,8 @@ const char *args_crone_port(void) {
 
 const char *args_framebuffer(void) {
     return a.framebuffer;
+}
+
+bool args_skip_ioctls(void) {
+    return a.skip_ioctls;
 }

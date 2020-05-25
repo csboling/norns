@@ -76,6 +76,7 @@ cairo_surface_t *cairo_linuxfb_surface_create() {
     cairo_surface_t *surface;
 
     const char *fb_name = args_framebuffer();
+    fprintf(stderr, "opening screen at %s\n", fb_name);
 
     device = malloc(sizeof(*device));
     if (!device) {
@@ -91,9 +92,15 @@ cairo_surface_t *cairo_linuxfb_surface_create() {
     }
 
     // Get variable screen information
-    if (ioctl(device->fb_fd, FBIOGET_VSCREENINFO, &device->fb_vinfo) == -1) {
-        fprintf(stderr, "ERROR (screen) reading variable information\n");
-        goto handle_ioctl_error;
+    if (args_skip_ioctls()) {
+        device->fb_vinfo.xres = 128;
+        device->fb_vinfo.yres = 64;
+        device->fb_vinfo.bits_per_pixel = 32;
+    } else {
+        if (ioctl(device->fb_fd, FBIOGET_VSCREENINFO, &device->fb_vinfo) == -1) {
+            fprintf(stderr, "ERROR (screen) reading variable information\n");
+            goto handle_ioctl_error;
+        }
     }
 
     // Figure out the size of the screen in bytes
@@ -109,9 +116,11 @@ cairo_surface_t *cairo_linuxfb_surface_create() {
     }
 
     // Get fixed screen information
-    if (ioctl(device->fb_fd, FBIOGET_FSCREENINFO, &device->fb_finfo) == -1) {
-        fprintf(stderr, "ERROR (screen) reading fixed information\n");
-        goto handle_ioctl_error;
+    if (!args_skip_ioctls()) {
+        if (ioctl(device->fb_fd, FBIOGET_FSCREENINFO, &device->fb_finfo) == -1) {
+            fprintf(stderr, "ERROR (screen) reading fixed information\n");
+            goto handle_ioctl_error;
+        }
     }
 
     /* Create the cairo surface which will be used to draw to */
@@ -447,6 +456,37 @@ double *screen_text_extents(const char *s) {
 extern void screen_export_png(const char *s) {
     CHECK_CR
     cairo_surface_write_to_png(surface, s);
+}
+
+struct png_buf_t {
+    char *pos;
+    char *end;
+};
+
+static cairo_status_t write_png_to_buf(void *data,
+                                       const unsigned char *buf,
+                                       unsigned int len) {
+    struct png_buf_t *png_buf = data;
+    fprintf(stderr, "write %d\n", len);
+    if (png_buf->pos + len > png_buf->end)
+        return CAIRO_STATUS_WRITE_ERROR;
+    memcpy(png_buf->pos, buf, len);
+    png_buf->pos += len;
+    return CAIRO_STATUS_SUCCESS;
+}
+
+extern int screen_export_png_buf(char *buf, size_t len) {
+    struct png_buf_t png_buf = {
+        .pos = buf,
+        .end = buf + len,
+    };
+    
+    CHECK_CRR
+    fprintf(stderr, "write to %zu byte buf\n", len);
+    if (cairo_surface_write_to_png_stream(surface, write_png_to_buf, &png_buf) != CAIRO_STATUS_SUCCESS) {
+        return 0;
+    }
+    return png_buf.pos - buf;
 }
 
 #undef CHECK_CR

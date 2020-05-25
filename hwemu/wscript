@@ -1,0 +1,34 @@
+top = '..'
+
+def build(bld):
+    hwemu_sources = [
+        '../matron/src/args.c',
+        'src/main.c',
+        'src/base64/base64.c',
+    ]
+
+    hwemu_includes = [
+        '../matron/src',
+        'src',
+        'src/base64',
+    ]
+
+    hwemu_libs = [
+        'fuse3',
+        'pthread',
+        'm',
+        'png',
+    ]
+
+    hwemu_use = [        
+        'FUSE3',
+        'PNG',
+    ]
+
+    bld.program(features='c cprogram',
+        source=hwemu_sources,
+        target='hwemu',
+        includes=hwemu_includes,
+        use=hwemu_use,
+        lib=hwemu_libs,
+        cflags=['-O3', '-Wall'])
