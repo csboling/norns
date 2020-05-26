@@ -6,6 +6,7 @@
 #include <unistd.h>
 
 #include <json.h>
+#include <linux/input.h>
 #include <sys/stat.h>
 
 #include "args.h"
@@ -75,21 +76,38 @@ file_error:
 }
 
 static void gpio_write_event(struct gpio_emu* gpio, struct gpio_cmd* cmd) {
-    (void)gpio;
+    struct gpio_file_emu* gpio_file;
+    struct input_event event;
+    int i;
+
+    if (cmd->index < 1 || cmd->index > 3) {
+        return;
+    }
+    i = cmd->index - 1;
 
     switch (cmd->type) {
     case GPIO_KEY_UP:
-        fprintf(stderr, "***key %d up\n", cmd->index);
+        gpio_file = &gpio->keys;
+        event.type = EV_KEY;
+        event.value = 0;
         break;
     case GPIO_KEY_DOWN:
-        fprintf(stderr, "***key %d down\n", cmd->index);
+        gpio_file = &gpio->keys;
+        event.type = EV_KEY;
+        event.value = 1;
         break;
     case GPIO_ENC:
-        fprintf(stderr, "***enc %d: %d\n", cmd->index, cmd->value);
+        gpio_file = &gpio->encs[i];
+        event.type = EV_KEY;
+        event.value = cmd->value;
         break;
     default:
         fprintf(stderr, "ERROR (gpio) unknown cmd type: %d\n", cmd->type);
+        return;
     }
+
+    event.code = i;
+    write(gpio_file->fd, &event, sizeof(struct input_event));
 }
 
 void* gpio_emu_poll(void* data) {
@@ -121,7 +139,7 @@ void* gpio_emu_poll(void* data) {
                     cmd.type = GPIO_KEY_UP;
                 } else if (strcmp("keyDown", str) == 0) {
                     cmd.type = GPIO_KEY_DOWN;
-                } else if (strcmp("enc", str)) {
+                } else if (strcmp("enc", str) == 0) {
                     cmd.type = GPIO_ENC;
                 } else {
                     fprintf(stderr, "ERROR (gpio) unknown input type '%s'\n", str);
