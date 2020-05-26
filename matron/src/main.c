@@ -60,13 +60,13 @@ int main(int argc, char **argv) {
 
     metros_init();
 
-#ifdef __arm__
+/* #ifdef __arm__ */
     // gpio_init() hangs for too long when cross-compiling norns
     // desktop for dev - just disable on x86 for now
     gpio_init();
-#endif
+/* #endif */
 
-    battery_init();
+    /* battery_init(); */
     stat_init();
     i2c_init();
     osc_init();
