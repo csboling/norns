@@ -108,6 +108,9 @@ function PageRouter:draw_router()
   return router
 end
 
+function PageRouter:page_router()
+  return function() return self.active end
+end
 
 --
 -- module

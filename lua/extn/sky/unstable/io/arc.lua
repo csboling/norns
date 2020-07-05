@@ -121,12 +121,37 @@ end
 
 function ArcDisplay:process(event, output, state)
   local props = { arc = self.arc }
+  self.arc:all(0)
   for i, child in ipairs(self) do
     props.position = i
-    child:render(event, props)
+    if type(child) == 'function' then
+      child()
+    else
+      props.position = i
+      child:render(event, props)
+    end
   end
   self.arc:refresh()
   output(event)
+end
+
+---
+--- ArcCallbacks
+---
+local ArcCallbacks = sky.Device:extend()
+
+function ArcCallbacks:new(props)
+  ArcCallbacks.super.new(self, props)
+  self.target = props.target
+end
+
+function ArcCallbacks:process(event, ...)
+  ArcCallbacks.super.process(self, event, ...)
+
+  local target = self.target()
+  if sky.is_type(event, ArcInput.ARC_ENC_EVENT) and type(target.arc_enc) == 'function' then
+    target.arc_enc(target, event.n, event.delta, ...)
+  end
 end
 
 return {
@@ -134,6 +159,7 @@ return {
   ArcDialGesture = ArcDialGesture,
   ArcDialRender = ArcDialRender,
   ArcDisplay = ArcDisplay,
+  ArcCallbacks = ArcCallbacks,
 
   -- constants
   TWO_PI = TWO_PI,
@@ -141,7 +167,3 @@ return {
   ARC_DIAL_EVENT = ARC_DIAL_EVENT,
   ARC_ENC_EVENT = ARC_ENC_EVENT,
 }
-
-
-
-

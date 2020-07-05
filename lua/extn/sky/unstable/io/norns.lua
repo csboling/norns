@@ -127,10 +127,31 @@ local function shared_display(props)
   return SingletonDisplay
 end
 
+---
+--- NornsCallbacks
+---
+local NornsCallbacks = sky.Device:extend()
+
+function NornsCallbacks:new(props)
+  NornsCallbacks.super.new(self, props)
+  self.target = props.target
+end
+
+function NornsCallbacks:process(event, ...)
+  NornsCallbacks.super.process(self, event, ...)
+
+  local target = self.target()
+  if NornsInput.is_key(event) and type(target.key) == 'function' then
+    target.key(target, event.num, event.z, ...)
+  elseif NornsInput.is_enc(event) and type(target.enc) == 'function' then
+    target.enc(target, event.num, event.delta, ...)
+  end
+end
 
 return {
   NornsInput = shared_input,
   NornsDisplay = shared_display,
+  NornsCallbacks = NornsCallbacks,
 
   -- low level drawing focus controls
   has_focus = has_focus,
@@ -149,7 +170,3 @@ return {
   ENC_EVENT = NornsInput.ENC_EVENT,
   REDRAW_EVENT = NornsInput.REDRAW_EVENT,
 }
-
-
-
-
